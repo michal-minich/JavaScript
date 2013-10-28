@@ -1,0 +1,600 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta name="author" content="Michal Minich">
+        <title>JavaScript Values and Types Quirks</title>
+
+        <style type="text/css">
+            body      { cursor: default }
+            body      { font: bold 10pt Consolas, sans-serif }
+            li        { font-weight: normal }
+            h2        { font-size: x-large }
+            h1, h2    {  text-shadow: 3px 4px 4px #aaa;  }
+            table     { box-shadow: 2px 2px 10px 2px  #bbb }
+            thead     { background-color: lightgray }
+            table     { border-collapse: collapse }
+            .table-line-spacer { margin-bottom: 50px; }
+            caption   { text-align: left; font-size: larger; color: gray }
+            td, th    { border: 1px solid gray;
+                        padding: 2px 6px; }
+            hr        { border: 1px solid lightgray }
+            tr:nth-child(even) { background-color: #eee }
+            tr:nth-child(even):hover > td { background-color: #ddddf6 }
+            tr:nth-child(odd):hover  > td { background-color: #dde }
+
+            .ok       { background-color: lightgreen }
+            .fail     { background-color: lightcoral }
+            .true     { color: darkgreen }
+            .false    { color: darkred }
+            .maybe    { color: #f60 }
+            .grayText { color: gray }
+
+            .center { text-align: center}
+
+            .printDisplayOnly { display: none; }
+
+            @media print {
+                /* Comment these print style rows to print the same way as it is on screen.
+                   Otherwise presentation-style slides will be printed */
+                table   { page-break-before: always }
+                hr      { display: none }
+                body    { font-size: 16pt }
+                li      { font-size: 22pt }
+                h1, h2  { font-size: 32pt;
+                          text-align: center;
+                          vertical-align: middle;
+                          width: 100%;
+                          height: 100%;
+                          display: inline-block;
+                          page-break-before: always; }
+                h1      { font-size: 44pt }
+                .printLineBreak { display:block; clear:both; }
+                .printPageBreak { page-break-after: always; }
+                .printDisplayOnly { display: block; }
+            }
+
+        </style>
+
+        <script type="text/javascript">
+
+            //'use strict'; -- cannot use because evaluation of octals in expamles, wich are deprecated
+
+            var tbls = '';
+            var tbl = '';
+
+            function startTable (caption)
+            {
+                if (tbls !== '')
+                    endTable();
+
+                tbls += '<table><caption>' + caption + '</caption><thead><tr>'
+                    + '<th>Code</th>'
+                    + '<th>Expression 1</th>'
+                    + '<th>Expression 2</th>'
+                    //+' <th>Reversed</th>'
+                    + '<th <span title="Equality with implicit type conversion">==</span><br/>'
+                    + '    <span title="Strict equality">===</span></th>'
+                    + '<th>typeof 1<br/>instanceof 1</th>'
+                    + '<th>typeof 2<br/>instanceof 2</th>'
+                    + '</tr></thead>';
+
+            }
+
+
+            function endTable ()
+            {
+                tbls += '<tbody>' + tbl + '</tbody></table>';
+                if (arguments.length)
+                    list(arguments);
+                tbls += '<div class="table-line-spacer"></div>';
+                tbl = '';
+            }
+
+
+            function list (items)
+            {
+                tbls += '<ul>';
+                for (var i = 0; i < items.length; i++)
+                {
+                    var c = items[i];
+                    tbls += '<li>' + c + '</li>';
+                }
+                tbls += '</ul>'
+            }
+
+
+            function start ()
+            {
+                // -------- simple
+
+                startTable("Boolean");
+                add('', 'false', 'false', true, true);
+                add('', 'true', 'new Boolean(true)', true, "maybe");
+                add('', 'new Boolean(true)', 'new Boolean(true)', false, false);
+                endTable("Boolean has two values <b>true</b> and <b>false</b>",
+                         "Wrapper expression new Boolean(...) is is completely unnecessary. Use <b>true</b> / <b>false</b> instead");
+
+                startTable("String");
+                add('', '"abc"', '\'abc\'', true, true);
+                add('', '"abc"', 'new String("abc")', true, "maybe");
+                add('', 'new String("abc")', 'new String("abc")', false, false);
+                endTable("Using <i>single</i> or <i>double</i> quites is completely equal",
+                        "Wrapper expression new String(...) is is completely unnecessary,. Use <b>qoutes</b> instead");
+
+                startTable("Number");
+                add('', '314', '+3.14e2', true, true);
+                add('', '0.0314', '3.14E-2', true, true);
+                add('/* hex */', '255', '0xFf', true, true);
+                add('/* hex */', '-255', '-0XfF', true, true);
+                add('/* octal, deprecated */', '8', '010', true, true);
+                add('/* octal, deprecated */', '-8', '-010', true, true);
+                add('', 'NaN', 'NaN', "maybe", "maybe");
+                add('', '-NaN', '+NaN', "maybe", "maybe");
+                add('', '0', '+0', true, true);
+                add('', '-0', '-0', true, true);
+                add('', '+0', '-0', true, true);
+                add('', '0 < -0', 'true', true, true);
+                add('', '-0 < 0', 'true', true, true);
+                add('', '0 < +0', 'true', true, true);
+                add('', 'Infinity', '+Infinity', true, true);
+                add('', '-Infinity', '-Infinity', true, true);
+                add('', '+Infinity', '1 / +0', true, true);
+                add('', '-Infinity', '1 / -0', true, true);
+                add('', '0.1 + 0.2', '0.30000000000000007', true, true);
+                add('', '0.30000000000000007', '0.30000000000000002', true, true);
+                add('', '3', 'new Number(3)', true, "maybe");
+                add('', 'new Number(3.14)', 'new Number(3.14)', false, false);
+                endTable("NaN is not equal with anything, including itself",
+                         "Octal number (prefix with zero) is deprecated in strict mode",
+                         "Negative and positive zero is the same except when diving by it",
+                         "Number is typical Double - 64bit IEEE 754 standard",
+                         "Wrapper expression new Number(...) is is completely unnecessary");
+
+
+                endTable();
+                document.getElementById('js-simple').innerHTML += tbls;
+                tbls = '';
+
+                // ------- complex
+
+                startTable("Array");
+                add('', '[1, 2, 3]', 'new Array(1, 2, 3)', true, true);
+                add('', '[1, 2, 3]', '[1, 2, 3]', true, true);
+                add('var a = ["1", "2", "3"]', 'a', 'a', true, true);
+                add('', '123', 'new Array(123).length', false, false);
+                add('', '1', '[123].length', true, true);
+                endTable("To compare arrays you need to loop over each element",
+                        "Arrays can be nested to crate multi-dimensional array",
+                        "Wrapper expression new Array(...) is is completely unnecessary and confusing. Use [] instead",
+                        "If there is only one parameter to new Array(...) and it is numeric, " +
+                                "then it means length of the array, not na item.");
+
+                startTable("RegExp");
+                add('', '/ab+c/', 'new RegExp(/ab+c/)', true, true);
+                add('', '/ab+c/', '/ab+c/', true, true);
+                add('var r = /ab+c/', 'r', ' r', true, true);
+                add('', '"xxx".replace("x", "y")', '"yxx"', true, true);
+                endTable("Note that String.replace function accepts regular expression");
+
+                startTable("Date");
+                add('', 'new Date(2013, 11, 31, 1).toString()', 'new Date("2013-12-31")', false, "maybe");
+                endTable("In Date constructor: Month is in interval from 0 to 11. Year, and Day are from 1.");
+
+                startTable("Object");
+                add('var o = {}', 'o', 'new Object()', true, true);
+                add('/* syntax error when swapped */', 'new Object()', '{}', true, true);
+                add('', '({})', '({})', true, true);
+                add('', 'new Object(123)', 'new Number(123)', false, false);
+                endTable("Wrapper expression new Object(...) is is completely unnecessary and confusing. Use {} instead");
+
+                startTable("Function");
+                add('function x () {}; ', 'x', ' x', true, true);
+                add('var z = function () {}; ', 'z', ' z', true, true);
+                add('function a () {}; function b () {}', 'a', 'b', true, true);
+                add('var c = function () {}; var d = function () {}', 'c', 'd', true, true);
+                add('', '""', 'new Function("return arguments[0]")', true, true);
+                endTable("Instead of syntax <b>function x () {}</b> prefer <b>var x = function () {}</b>" +
+                        " or <b>x: function () {}</b> <span class='grayText'>(inside object literal)</span> to define function," +
+                        " for reason not explained in this document (scoping).</b>");
+
+                endTable();
+                document.getElementById('js-complex').innerHTML += tbls;
+                tbls = '';
+
+                // ------- Special
+
+                startTable("");
+                add('', 'undefined', 'null', true, true);
+                add('', 'undefined', 'void (1 + 2)', true, true);
+                add('', 'undefined', 'void 1 + 2', "maybe", "maybe");
+                endTable("Note that <b>void</b> only takes first following expression (unlike i.e. <b>return</b> statement)",
+                         "There is no reason to use <b>void</b> expression except in inline HTML event handlers (to cancel them)");
+                document.getElementById('js-special').innerHTML += tbls;
+                tbls = '';
+
+                // ---------- Type Conversions - Boolean
+
+                startTable("to Boolean - only implicitly convertible expressions when using true/false");
+                add('', 'true', '1', true, true);
+                add('', 'true', '"1"', true, true);
+                add('', 'false', '0', true, true);
+                add('', 'false', '"0"', "maybe", true);
+                add('', 'false', '""', true, true);
+                add('', 'false', '[]', "maybe", true);
+                add('', 'false', 'new Boolean(false)', true, false);
+                endTable("Only these values are comparable to true or false.",
+                        "Other values are neither true or false when comparing to true or false literal",
+                        "Note that using in <b>if</b> or <b>comparison ? :</b> expression might give different result");
+
+                startTable("to Boolean - inside <b>if</b> statement");
+                add('', 'true', '(1 ? true : false)', true, true);
+                add('', 'true', '("1" ? true : false)', "maybe", "maybe");
+                add('', 'false', '(0 ? true : false)', true, true);
+                add('', 'true', '("0" ? true : false)', false, false);
+                add('', 'false', '("" ? true : false)', true, true);
+                add('', 'true', '([] ? true : false)', false, false);
+                add('', 'true', '(new Boolean(false) ? true : false)', false, false);
+                add('', 'false', '(null ? true : false)', true, true);
+                add('', 'false', '(undefined ? true : false)', true, true);
+                add('', 'false', '(NaN ? true : false)', true, true);
+                endTable("Always enclose ? : expression inside braces. Operator precedence rules are not favorable in this case.",
+                        "These are considered <b>false</b> for <b>if</b> statement, in addition to above mentioned values explicitly compared to true / false" +
+                        ": null, undefined, NaN, and any Object - including empty and Boolean(true)",
+                        "That means it makes difference to write <b>if (a == true) ...</b> vs <b>if (a) ...</b>");
+
+                startTable("Expressions not implicitly convertible to Boolean");
+                add('', 'true', '2', "maybe", true);
+                add('', 'false', '2', "maybe", true);
+                add('', 'true', '-1', "maybe", true);
+                add('', 'false', '-1', "maybe", true);
+                add('', 'true', '{}', "maybe", true);
+                add('', 'false', '{}', "maybe", true);
+                add('var o = {}', 'true', 'o', "maybe", true);
+                add('var o = {}', 'false', 'o', "maybe", true);
+                add('', 'true', '"false"', "maybe", true);
+                add('', 'false', '"false"', "maybe", true);
+                add('', 'true', '"true"', "maybe", true);
+                add('', 'false', '"true"', "maybe", true);
+                add('', 'true', '"abc"', "maybe", true);
+                add('', 'false', '"abc"', "maybe", true);
+                add('', 'true', 'NaN', "maybe", true);
+                add('', 'false', 'NaN', "maybe", true);
+                add('', 'true', 'Infinity', "maybe", true);
+                add('', 'false', 'Infinity', "maybe", true);
+                add('', 'true', '-Infinity', "maybe", true);
+                add('', 'false', '-Infinity', "maybe", true);
+                add('', 'true', 'null', "maybe", true);
+                add('', 'false', 'null', "maybe", true);
+                add('', 'true', 'undefined', "maybe", true);
+                add('', 'false', 'undefined', "maybe", true);
+                add('', 'false', 'function x () {}', "maybe", true);
+                add('', 'true', 'function x () {}', "maybe", true);
+
+                startTable("to Boolean - explicit conversion using using double negation !! and constructor");
+                add('/* true */', '!!1', 'new Boolean(1)', true, true);
+                add('/* true */', '!!2', 'new Boolean(2)', true, true);
+                add('/* true */', '!!+Infinity', 'new Boolean(+Infinity)', true, true);
+                add('/* true */', '!!-Infinity', 'new Boolean(-Infinity)', true, true);
+                add('/* true */', '!!"1"', 'new Boolean("1")', true, true);
+                add('/* true */', '!!"0"', 'new Boolean("0")', false, true);
+                add('/* true */', '!!"abc"', 'new Boolean("abc")', true, true);
+                add('/* true */', '!![]', 'new Boolean([])', false, true);
+                add('/* true */', '!!{}', 'new Boolean({})', "maybe", true);
+                add('/* true */', '!!function x () {}', 'new Boolean(function x () {})', "maybe", true);
+                add('/* false */', '!!false', 'new Boolean(false)', true, false);
+                add('/* false */', '!!""', 'new Boolean("")', true, true);
+                add('/* false */', '!!0', 'new Boolean(0)', true, true);
+                add('/* false */', '!!null', 'new Boolean(null)', true, true);
+                add('/* false */', '!!undefined', 'new Boolean(undefined)', true, true);
+                add('/* false */', '!!NaN', 'new Boolean(NaN)', true, true);
+                add('/* false */', 'false', 'new Boolean()', true, true);
+                endTable("All numbers (including infinities) except <b>0</b> and <b>NaN</b>  are converted to true",
+                        "All strings except empty string <b>\"\"</b>  are converted to true",
+                        "!! Converts everything to true except <b>0</b>, <b>NaN</b>, <b>\"\"</b> , <b>null</b> and <b>undefined</b>.");
+
+                endTable();
+                document.getElementById('bool-conversions').innerHTML += tbls;
+                tbls = '';
+
+                // ---------- Type Conversions - Numeric
+
+                startTable("To Number - using arithmetic");
+                add('/* "1230" */', '123', '"123" + 0', true, true);
+                add('/* "0123" */', '123', '0 + "123"', true, false);
+                add('', '123', '0123', "maybe", "maybe");
+                add('/* "456" */', '456', '+"456"', true, true);
+                add('/* 333 */', '333', '"333" - 0', true, true);
+                add('/* -333 */', '333', '0 - "333"', true, true);
+                add('/* 444 */', '444', '"444" * 1', true, true);
+                add('/* 444 */', '444', '1 * "444"', true, true);
+                add('/* 555 */', '555', '"555" / 1', true, true);
+                add('/* "10023" */', '123', '"100" + "23"', true, true);
+                endTable("Best way to convert string to number is to prefix it with +, subtract 0, multiply by 1 or divide by 1");
+
+                startTable("To Number - parseInt");
+                add('/* "" */', '123', 'parseInt("123")', true, true);
+                add('/* "" */', '123', 'parseInt("123.9")', true, true);
+
+                startTable("To Number - parseFloat");
+                add('/* "" */', '3.14', 'parseFloat("3.14")', true, true);
+
+                startTable("To Number - using operator | to convert to int32");
+                add('/* "" */', '1', '(1.9|0)', true, true);
+
+
+                endTable();
+                document.getElementById('num-conversions').innerHTML += tbls;
+                tbls = '';
+
+
+                // ---------- Type Conversions - String
+
+                startTable("To String");
+                add('', '"1"', '"" + 1', true, true);
+                add('', '"1"', 'new String(1)', true, "maybe");
+
+                endTable();
+                document.getElementById('string-conversions').innerHTML += tbls;
+                tbls = '';
+
+                // ---------- Type Conversions - Date
+
+                startTable("To Date");
+                add('', 'new Date()', 'new Date().getTime()', true, "maybe");
+                add('', 'new Date(2013, 11, 31, 23, 59, 59,  999)', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
+                add('', 'new Date(2013, 11, 31, 23, 59, 59, 1000)', '"Wed Jan 01 2014 00:00:00 GMT+0100 (Central Europe Daylight Time)"', true, true);
+                add('', 'new Date("Tue Dec 31 2013 23:59:59")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
+                add('', 'new Date("2013-12-31T23:59:59.1000")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
+                endTable();
+                document.getElementById('date-conversions').innerHTML += tbls;
+                tbls = '';
+
+
+                // ---------- other
+
+
+                startTable("NaN is not equal with anything, even with itself");
+                add('', 'NaN', 'NaN', true, true);
+                add('', 'NaN', '0', true, true);
+                add('', 'NaN', 'Infinity', true, true);
+                add('', 'NaN', 'false', true, true);
+                add('', 'NaN', 'null', true, true);
+                add('', 'NaN', 'undefined', true, true);
+                add('', 'false', 'isNaN("123")', true, true);
+                add('', 'true', 'isNaN(+"-0xfF")', true, true);
+                add('', 'true', 'isNaN("NaN")', true, true);
+                add('', 'true', 'isNaN(undefined)', "maybe", false);
+                add('', 'true', 'isNaN(null)', true, true);
+                add('', 'true', 'isNaN({})', "maybe", false);
+                add('', 'true', 'isNaN("xyz")', "maybe", false);
+                add('var x = NaN', 'x !== x', 'true', true, true);
+                add('var x = NaN + 1', 'x != x', 'true', true, true);
+                endTable("NaN is not equal with anything, including itself",
+                         "You can precisely test for NaN with expression (<b>a != a</b>) (don't use function <b>isNaN</b> because it is quirky)",
+                         "Any operation involving <b>NaN</b> will result in <b>NaN</b> <span class='grayText'>(not specific to JS)</span>");
+
+
+
+
+                endTable();
+                document.getElementById('other').innerHTML += tbls;
+                tbl = '';
+                tbls = '';
+            }
+
+
+            function add (code, exp1 /*:string*/, exp2 /*:string*/, eqQuirkySensible, eqStrictSensible)
+            {
+                if(typeof eqQuirkySensible === "undefined")
+                    eqQuirkySensible = "maybe";
+
+                if(typeof eqStrictSensible === "undefined")
+                    eqStrictSensible = "maybe";
+
+                var eqQuirky = e(code + '\n' + exp1 + ' == ' + exp2);
+                var eqStrict = e(code + '\n' + exp1 + ' === ' + exp2);
+
+                var res1 = e(code + '\n' + exp1);
+                var res2 = e(code + '\n' + exp2);
+
+                var type1 = getTypeName(res1);
+                var type2 = getTypeName(res2);
+
+                if (code.indexOf("/*") == 0)
+                    code = '<span class="grayText">'+ code +"</span>";
+
+                tbl += '<tr>'
+                + '<td>' +  code.replace(/; /g, '<br/>') + '</td>'
+                + '<td title="' + (res1 ? (res1.toString()) : '') +'">' +  exp1 + '</td>'
+                + '<td title="' + (res2 ? (res2.toString()) : '') +'">' +  exp2 + '</td>'
+                + '<td><span class="' + eqQuirkySensible + '">' + eqQuirky + '</span><br/>'
+                + '    <span class="' + eqStrictSensible + '">' + eqStrict + '</span></td>'
+                + getMaybeMergedColumns((typeof res1) + '<br/>' + type1, (typeof res2)+ '<br/>' + type2);
+                //+ getMaybeMergedColumns(typeof res1, typeof res2);
+                //+ getMaybeMergedColumns(type1, type2);
+
+                tbl += '</tr>';
+            }
+
+
+            function getMaybeMergedColumns (a, b)
+            {
+                var res = '';
+                if (a !== b)
+                {
+                    res = '<td>' + a + '</td><td>' + b + '</td>'
+                }
+                else
+                {
+                    res = '<td colspan="2" class="center">' + a + '</td>'
+                }
+
+                return res;
+            }
+
+
+            function e (code /*:string*/) { return eval(code); }
+
+
+            function getTypeName (exp)
+            {
+                if (exp === null)
+                {
+                    return "<i class=\"grayText\">Null</i>"
+                }
+                else
+                {
+                    var t = Object.prototype.toString.call(exp);
+                    t = t.substring(8, t.length - 1);
+                    if (t === "Undefined")
+                        return "<i class=\"grayText\">" + t + "</i>";
+                    return t;
+                }
+            }
+
+        </script>
+
+    </head>
+
+    <body onload="start();">
+        <h1>JavaScript<span class="printLineBreak"/> Dynamic Typing Quirks</h1>
+        <ul class="printDisplayOnly">
+            <li>Introduction to Javascript values and types</li>
+            <li><b>Creation</b> of values of simple and complex types</li>
+            <li><b>Implicit</b> and <b>explicit</b> <b>conversions</b> between values of simple types</li>
+            <li>Summary and <b>recommendations</b> for best practices</li>
+        </ul>
+        <h2>Introduction to Javascript<span class="printLineBreak"/> Values and Types</h2>
+        <span class="printPageBreak"></span>
+        <ul>
+            <li><b>Value Types</b>
+                 <ul>
+                    <li>Boolean</li>
+                    <li>Number</li>
+                    <li>String</li>
+                </ul>
+                <br/>
+            </li>
+            <li><b>Reference Types</b>
+                <ul>
+                    <li>Object <span class="grayText">user defined types <i>inherit</i> from this object</span></li>
+                    <li>Array</li>
+                    <li>Date</li>
+                    <li>RegExp</li>
+                    <li>Function</li>
+                </ul>
+                <br/>
+            </li>
+            <li><b>Special Values</b>
+                <ul>
+                    <li><b><i>null</i></b> <span class="grayText">is typeof object, but has no properties and is instance of <i>nothing</i></span></li>
+                    <li><b><i>undefined</i></b> <span class="grayText">is typeof undefined, represents something that doesn't not exits and is instance of <i>nothing</i></span></li>
+                </ul>
+            </li>
+        </ul>
+        <h2>What Quirky Behaviour...</h2>
+        <ul class="printPageBreak">
+            <li>Types are not responsible for quirky behaviour. Constructed types are exactly what they are</li>
+            <li>What cause quirky behavior are operations. If they were defined consistently we can find logic in them,
+                unfortunately they inconsistent on many occasions:
+                <ul>
+                    <li><b>Constructors</b> <span class="grayText">(especially  new Array, Object, Boolean, Number, String and Date)</span></li>
+                    <li><b>+</b> operator</li>
+                    <li><b>==</b> operator  <span class="grayText">in many ways</span></li>
+                    <li><b>octal</b> literal <span class="grayText">fortunately this one is deprecated</span></li>
+                    <li><b>Date</b> object constructor and methods</li>
+                    <li><b>void</b> operator</li>
+                    <li><b>if</b> and <b>conditional ? :</b> expression</li>
+                    <li>functions: <b>isNaN</b>, <b>parseInt</b>, <b>parseFloat</b></li>
+                </ul>
+            </li>
+        </ul>
+        <h2>Simple Values and Types</h2>
+        <div id="js-simple"></div>
+
+        <hr>
+        <h2>Complex Values and Types</h2>
+        <div id="js-complex"></div>
+
+        <hr>
+        <h2>Special Values and Types</h2>
+        <div id="js-special"></div>
+
+        <hr>
+        <h2>Type Conversions - to Boolean</h2>
+        <div id="bool-conversions"></div>
+
+        <hr>
+        <h2>Type Conversions - to Number</h2>
+        <div id="num-conversions"></div>
+
+        <hr>
+        <h2>Type Conversions - to String</h2>
+        <div id="string-conversions"></div>
+
+        <hr>
+        <h2>Type Conversions - to Date</h2>
+        <div id="date-conversions"></div>
+
+        <hr>
+        <h2>Other</h2>
+        <div id="other"></div>
+
+        <hr>
+        <h2>Conclusion</h2>
+        <ul>
+            <li><b>When Converting, <u>Don't Use</u></b>
+                <ul>
+                    <li>new Boolean(...)</li>
+                    <li>new Number(...)</li>
+                    <li>new String(...)</li>
+                </ul>
+            </li>
+            <br>
+            <li><b>When Creating new Object, <u>Don't Use</u></b>
+                <ul>
+                    <li>new Boolean(...)</li>
+                    <li>new Number(...)</li>
+                    <li>new String(...)</li>
+                    <li>new Object(...)</li>
+                    <li>new Array(...)</li>
+                </ul>
+            </li>
+            <br>
+            <li><b>When Converting, <u>Use</u></b>
+                <ul>
+                    <li><b>!!</b>boleanish <span class="grayText">to convert value of any type to Boolean</span></li>
+                    <li><b>+</b> numberis <span class="grayText">to convert value of any type to Number</span></li>
+                    <li><b>"" +</b> stringish <span class="grayText">to convert value of any type to String</span></li>
+                </ul>
+                <br/>
+            </li>
+            <li><b><u>Use</u> reliable alternatives instead of quirky ones</b>
+                <ul>
+                    <li>Use <b>x != x</b> to identify NaN <span class="grayText">instead of function isNaN</span></li>
+                    <li><b>+</b> numberis <span class="grayText">to convert value of any type to Number</span></li>
+                    <li><b>"" +</b> stringish <span class="grayText">to convert value of any type to String</span></li>
+                </ul>
+                <br/>
+            </li>
+            <li><b><u>Note</u> some unexpected but valid behaviour</b>
+                <ul>
+                    <li>String.<b>replace</b> uses regular expression instead of exact string</li>
+                    <li>Any operation involving <b>NaN</b> will result in <b>NaN</b> <span class="grayText">(not specific to JS)</span></li>
+                    <li>Use strict equality whenever possible (<b>!==</b>) (<b>===</b>).</li>
+                    <li>Be careful when writing if condition what implicitly converts to Boolean -
+                        <b>"1"</b> /  <b>"0"</b> yes,  <b>"true"</b> /  <b>"false"</b> not...</li>
+                    <li>Be extra careful with booleanish values, what is false when implicitly compared to bool might not be false inside if implicitly converted.</li>
+                </ul>
+                <br/>
+            </li>
+            <li><b>Some general advices</b>
+                <ul>
+                <li>Use browser console if not sure.</li>
+                <li>When testing "if" in console, test both cases: <b>if ("true")</b> passes, so does  <b>if("false")</b>!</li>
+               </ul>
+            </li>
+        </ul>
+    </body>
+</html>
