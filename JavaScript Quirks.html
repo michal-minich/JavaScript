@@ -10,8 +10,8 @@
             body      { font: bold 10pt Consolas, sans-serif }
             li        { font-weight: normal }
             h2        { font-size: x-large }
-            h1, h2    {  text-shadow: 3px 4px 4px #aaa;  }
-            table     { box-shadow: 2px 2px 10px 2px  #bbb }
+            h1, h2    { text-shadow: 2px 3px 3px #ccc;  }
+            table     { box-shadow: 2px 2px 10px 2px  #ccc }
             thead     { background-color: lightgray }
             table     { border-collapse: collapse }
             .table-line-spacer { margin-bottom: 50px; }
@@ -26,7 +26,8 @@
             .ok       { background-color: lightgreen }
             .fail     { background-color: lightcoral }
             .true     { color: darkgreen }
-            .false    { color: darkred }
+            .false    { color: #e50017 }
+            .notice   { color: mediumblue }
             .maybe    { color: #f60 }
             .grayText { color: gray }
 
@@ -52,13 +53,17 @@
                 .printLineBreak { display:block; clear:both; }
                 .printPageBreak { page-break-after: always; }
                 .printDisplayOnly { display: block; }
+
+                .true     { color: green }
+                .false    { color: red }
+                .notice   { color: blue }
             }
 
         </style>
 
         <script type="text/javascript">
 
-            //'use strict'; -- cannot use because evaluation of octals in expamles, wich are deprecated
+            //'use strict'; -- cannot use because evaluation of octals in examples, which are deprecated
 
             var tbls = '';
             var tbl = '';
@@ -112,44 +117,41 @@
                 add('', 'false', 'false', true, true);
                 add('', 'true', 'new Boolean(true)', true, "maybe");
                 add('', 'new Boolean(true)', 'new Boolean(true)', false, false);
-                endTable("Boolean has two values <b>true</b> and <b>false</b>",
-                         "Wrapper expression new Boolean(...) is is completely unnecessary. Use <b>true</b> / <b>false</b> instead");
+                endTable("Boolean has two values <b>true</b> and <b>false</b>, and two additional Boolean(true) and Boolean(false).",
+                         "Wrapper expression new Boolean(...) is is <u>completely unnecessary</u>. Use <b>true</b> / <b>false</b> instead");
 
                 startTable("String");
                 add('', '"abc"', '\'abc\'', true, true);
                 add('', '"abc"', 'new String("abc")', true, "maybe");
                 add('', 'new String("abc")', 'new String("abc")', false, false);
-                endTable("Using <i>single</i> or <i>double</i> quites is completely equal",
-                        "Wrapper expression new String(...) is is completely unnecessary,. Use <b>qoutes</b> instead");
+                endTable("Using <i>single</i> or <i>double</i> quotes is completely equal",
+                        "Wrapper expression new String(...) is is <u>completely unnecessary</u>,. Use <i>quotes</i> instead");
 
                 startTable("Number");
                 add('', '314', '+3.14e2', true, true);
                 add('', '0.0314', '3.14E-2', true, true);
                 add('/* hex */', '255', '0xFf', true, true);
                 add('/* hex */', '-255', '-0XfF', true, true);
-                add('/* octal, deprecated */', '8', '010', true, true);
-                add('/* octal, deprecated */', '-8', '-010', true, true);
-                add('', 'NaN', 'NaN', "maybe", "maybe");
-                add('', '-NaN', '+NaN', "maybe", "maybe");
-                add('', '0', '+0', true, true);
-                add('', '-0', '-0', true, true);
-                add('', '+0', '-0', true, true);
-                add('', '0 < -0', 'true', true, true);
-                add('', '-0 < 0', 'true', true, true);
-                add('', '0 < +0', 'true', true, true);
+                add('/* octal, deprecated */', '8', '010', "maybe", "maybe");
+                add('/* octal, deprecated */', '-8', '-010', "maybe", "maybe");
+                add('', 'NaN', 'NaN', true, true);
+                add('', '-NaN', '+NaN', true, true);
+                add('', '+0', '-0', "notice", "notice");
+                add('', '0 < -0', 'true', "notice", "notice");
+                add('', '0 > -0', 'true', "notice", "notice");
                 add('', 'Infinity', '+Infinity', true, true);
                 add('', '-Infinity', '-Infinity', true, true);
-                add('', '+Infinity', '1 / +0', true, true);
-                add('', '-Infinity', '1 / -0', true, true);
-                add('', '0.1 + 0.2', '0.30000000000000007', true, true);
-                add('', '0.30000000000000007', '0.30000000000000002', true, true);
+                add('', '+Infinity', '1 / +0', "notice", "notice");
+                add('', '-Infinity', '1 / -0', "notice", "notice");
+                add('', '0.1 + 0.2', '0.30000000000000007', "notice", "notice");
+                add('', '0.30000000000000007', '0.30000000000000002', "notice", "notice");
                 add('', '3', 'new Number(3)', true, "maybe");
                 add('', 'new Number(3.14)', 'new Number(3.14)', false, false);
                 endTable("NaN is not equal with anything, including itself",
                          "Octal number (prefix with zero) is deprecated in strict mode",
                          "Negative and positive zero is the same except when diving by it",
                          "Number is typical Double - 64bit IEEE 754 standard",
-                         "Wrapper expression new Number(...) is is completely unnecessary");
+                         "Wrapper expression new Number(...) is is <u>completely unnecessary</u>");
 
 
                 endTable();
@@ -162,11 +164,12 @@
                 add('', '[1, 2, 3]', 'new Array(1, 2, 3)', true, true);
                 add('', '[1, 2, 3]', '[1, 2, 3]', true, true);
                 add('var a = ["1", "2", "3"]', 'a', 'a', true, true);
-                add('', '123', 'new Array(123).length', false, false);
                 add('', '1', '[123].length', true, true);
+                add('', '123', 'new Array(123).length', false, false);
+                add('', '1', 'new Array("123").length', true, true);
                 endTable("To compare arrays you need to loop over each element",
                         "Arrays can be nested to crate multi-dimensional array",
-                        "Wrapper expression new Array(...) is is completely unnecessary and confusing. Use [] instead",
+                        "Wrapper expression new Array(...) is is <u>completely unnecessary</u> and confusing. Use [] instead",
                         "If there is only one parameter to new Array(...) and it is numeric, " +
                                 "then it means length of the array, not na item.");
 
@@ -174,7 +177,7 @@
                 add('', '/ab+c/', 'new RegExp(/ab+c/)', true, true);
                 add('', '/ab+c/', '/ab+c/', true, true);
                 add('var r = /ab+c/', 'r', ' r', true, true);
-                add('', '"xxx".replace("x", "y")', '"yxx"', true, true);
+                add('', '"xxx".replace("x", "y")', '"yxx"', "notice", "notice");
                 endTable("Note that String.replace function accepts regular expression");
 
                 startTable("Date");
@@ -186,7 +189,7 @@
                 add('/* syntax error when swapped */', 'new Object()', '{}', true, true);
                 add('', '({})', '({})', true, true);
                 add('', 'new Object(123)', 'new Number(123)', false, false);
-                endTable("Wrapper expression new Object(...) is is completely unnecessary and confusing. Use {} instead");
+                endTable("Wrapper expression new Object(...) is is <u>completely unnecessary</u> and confusing. Use {} instead");
 
                 startTable("Function");
                 add('function x () {}; ', 'x', ' x', true, true);
@@ -208,8 +211,8 @@
                 add('', 'undefined', 'null', true, true);
                 add('', 'undefined', 'void (1 + 2)', true, true);
                 add('', 'undefined', 'void 1 + 2', "maybe", "maybe");
-                endTable("Note that <b>void</b> only takes first following expression (unlike i.e. <b>return</b> statement)",
-                         "There is no reason to use <b>void</b> expression except in inline HTML event handlers (to cancel them)");
+                endTable("Note that <b>void</b> only takes first following expression (unlike i.e. <b>return</b> statement which takes everything after it)",
+                         "There is no reason to use <b>void</b> expression except in inline HTML event handlers");
                 document.getElementById('js-special').innerHTML += tbls;
                 tbls = '';
 
@@ -309,18 +312,36 @@
                 add('/* 444 */', '444', '"444" * 1', true, true);
                 add('/* 444 */', '444', '1 * "444"', true, true);
                 add('/* 555 */', '555', '"555" / 1', true, true);
-                add('/* "10023" */', '123', '"100" + "23"', true, true);
-                endTable("Best way to convert string to number is to prefix it with +, subtract 0, multiply by 1 or divide by 1");
+                add('', '"10023"', '"100" + "23"', true, true);
+                add('', '123', '+"123"', true, true);
+                add('', '0', '+""', "maybe", "maybe");
+                add('', '1', '+true', "notice", "notice");
+                add('', '0', '+false', "notice", "notice");
+                add('', '0', '+null', "notice", "notice");
+                add('', '+undefined != +undefined', 'true', true, true);
+                add('', '+{} != +{}', 'true', true, true);
+                add('var x = +(function () {})', 'x != x', 'true', true, true);
+                endTable("Convert string to number is possible by prefixing it with +, subtract 0, multiply by 1 or divide by 1",
+                         "Usual way to convert string to number is by prefixing plus before string, like: <b>+\"123\"</b>",
+                         "If one operand is number then string is converted to number first.");
 
                 startTable("To Number - parseInt");
-                add('/* "" */', '123', 'parseInt("123")', true, true);
-                add('/* "" */', '123', 'parseInt("123.9")', true, true);
+                add('', '123', 'parseInt("123")', true, true);
+                add('', '123', 'parseInt("123.9")', true, true);
+                add('', '123', 'parseInt("0123")', "notice", "notice");
+                add('/* NaN */', 'true', 'parseInt("") != parseInt("")', true, true);
+                add('', '3', 'parseInt("3.14E-2")', "notice", "notice");
+                endTable("parseInt does not understand and auto detecsts all forms of JavaScript numbers",
+                         "It accepts second parameter which can be number 8, 10 or 16 which means number base");
 
                 startTable("To Number - parseFloat");
-                add('/* "" */', '3.14', 'parseFloat("3.14")', true, true);
+                add('', '3.14', 'parseFloat("3.14")', true, true);
+                add('', '0.0314', 'parseFloat("3.14E-2")', true, true);
+                add('', '3.14', 'parseFloat("3.14px")', true, true);
+                endTable("parseFloat can be used to strip units like px, em, % or pt from CSS values");
 
                 startTable("To Number - using operator | to convert to int32");
-                add('/* "" */', '1', '(1.9|0)', true, true);
+                add('/* "" */', '123', '(123.9|0)', true, true);
 
 
                 endTable();
@@ -350,9 +371,7 @@
                 document.getElementById('date-conversions').innerHTML += tbls;
                 tbls = '';
 
-
                 // ---------- other
-
 
                 startTable("NaN is not equal with anything, even with itself");
                 add('', 'NaN', 'NaN', true, true);
@@ -373,9 +392,6 @@
                 endTable("NaN is not equal with anything, including itself",
                          "You can precisely test for NaN with expression (<b>a != a</b>) (don't use function <b>isNaN</b> because it is quirky)",
                          "Any operation involving <b>NaN</b> will result in <b>NaN</b> <span class='grayText'>(not specific to JS)</span>");
-
-
-
 
                 endTable();
                 document.getElementById('other').innerHTML += tbls;
@@ -510,6 +526,16 @@
                 </ul>
             </li>
         </ul>
+        <ul class="printPageBreak">
+            <li>How to undersntads colors further in the document</li>
+                <ul>
+                    <li><b class="true">green</b> - everything is all right and works as expected</span></li>
+                    <li><b class="notice">blue</b> - everything is all right, but might be little unexpected</li>
+                    <li><b class="maybe">oragne</b> - this behaviour could be seen as wrong, i.e. when considering other similar language constructs</li>
+                    <li><b class="false">red</b> - completely wrong and unexpected behaviour</li>
+                </ul>
+            </li>
+        </ul>
         <h2>Simple Values and Types</h2>
         <div id="js-simple"></div>
 
@@ -573,7 +599,7 @@
             <li><b><u>Use</u> reliable alternatives instead of quirky ones</b>
                 <ul>
                     <li>Use <b>x != x</b> to identify NaN <span class="grayText">instead of function isNaN</span></li>
-                    <li><b>+</b> numberis <span class="grayText">to convert value of any type to Number</span></li>
+                    <li><b>+</b>numberis <span class="grayText">to convert value of any type to Number</span></li>
                     <li><b>"" +</b> stringish <span class="grayText">to convert value of any type to String</span></li>
                 </ul>
                 <br/>
