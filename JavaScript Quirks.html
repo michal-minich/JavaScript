@@ -68,6 +68,25 @@
             var tbls = '';
             var tbl = '';
 
+
+            function startTable2 (caption)
+            {
+                if (tbls !== '')
+                    endTable();
+
+                tbls += '<table><caption>' + caption + '</caption><thead><tr>'
+                        + '<th>exp</th>'
+                        + '<th>parseFloat<br/>(exp)</th>'
+                        + '<th>Prefix<br/>+exp</th>'
+                        + '<th>Bitwise Or<br/>exp|0</th>'
+                        + '<th>parseInt<br/>(exp)</th>'
+                        + '<th>parseInt<br/>(exp, 8)</th>'
+                        + '<th>parseInt<br/>(exp, 10)</th>'
+                        + '<th>parseInt<br/>(exp, 16)</th>'
+                        + '</tr></thead>';
+            }
+
+
             function startTable (caption)
             {
                 if (tbls !== '')
@@ -77,7 +96,6 @@
                     + '<th>Code</th>'
                     + '<th>Expression 1</th>'
                     + '<th>Expression 2</th>'
-                    //+' <th>Reversed</th>'
                     + '<th <span title="Equality with implicit type conversion">==</span><br/>'
                     + '    <span title="Strict equality">===</span></th>'
                     + '<th>typeof 1<br/>instanceof 1</th>'
@@ -182,7 +200,12 @@
 
                 startTable("Date");
                 add('', 'new Date(2013, 11, 31, 1).toString()', 'new Date("2013-12-31")', false, "maybe");
-                endTable("In Date constructor: Month is in interval from 0 to 11. Year, and Day are from 1.");
+                add('', 'new Date(2013, 13, 1).toString()', 'new Date(2014, 1, 1).toString()', "maybe", "maybe");
+                add('', 'new Date(1999, 11, 31)', 'new Date(1999, 11, 31)', "maybe", "maybe");
+                add('', 'new Date(1999, 12, 31)', 'new Date()', "maybe", "maybe");
+                endTable("In Date constructor: Month is in interval from 0 to 11. Year, and Day are from 1.",
+                         "Calling new Date() will return instance of Date object with current local date and time",
+                         "Calling Date without new (like Date(\"2013-12-31\")) will always return string of current date.");
 
                 startTable("Object");
                 add('var o = {}', 'o', 'new Object()', true, true);
@@ -393,10 +416,66 @@
                          "You can precisely test for NaN with expression (<b>a != a</b>) (don't use function <b>isNaN</b> because it is quirky)",
                          "Any operation involving <b>NaN</b> will result in <b>NaN</b> <span class='grayText'>(not specific to JS)</span>");
 
+                document.getElementById('other').innerHTML += tbls;
+                tbl = '';
+                tbls = '';
+
+                startTable2("Converting to Number - various expressions");
+                add2('undefined');
+                add2('null');
+                add2('NaN');
+                add2('+Infinity');
+                add2('-Infinity');
+                add2('(function x () {})');
+                add2('({})');
+                add2('[]');
+                add2('new Array()');
+                add2('new Date()');
+                add2('new RegExp()');
+
+                startTable2("Converting to Number - booleanish expressions");
+                add2('false');
+                add2('"false"');
+                add2('true');
+                add2('"true"');
+                add2('0');
+                add2('"0"');
+                add2('1');
+                add2('"1"');
+
+                startTable2("Converting to Number - numerish expressions");
+                add2('123');
+                add2('0123');
+                add2('-0123');
+                add2('"0123"');
+                add2('"-0123"');
+                add2('3.14');
+                add2('314e-2');
+                add2('0xFF');
+                add2('-0xFF');
+                add2('"0123"');
+                add2('"-0123"');
+                endTable("bla");
+
                 endTable();
                 document.getElementById('other').innerHTML += tbls;
                 tbl = '';
                 tbls = '';
+            }
+
+
+            function add2 (code)
+            {
+                tbl += '<tr>'
+                    + '<td>' +  code.replace(/; /g, '<br/>') + '</td>'
+                    + '<td>' +  eval(code + "|0") + '</td>'
+                    + '<td>' +  eval("+" + code) + '</td>'
+                    + '<td>' +  eval("parseFloat(" + code + ")") + '</td>'
+                    + '<td>' +  eval("parseInt(" + code + ")") + '</td>'
+                    + '<td>' +  eval("parseInt(" + code + ", 8)") + '</td>'
+                    + '<td>' +  eval("parseInt(" + code + ", 10)") + '</td>'
+                    + '<td>' +  eval("parseInt(" + code + ", 16)") + '</td>'
+                    + '</tr>';
             }
 
 
@@ -421,16 +500,15 @@
                     code = '<span class="grayText">'+ code +"</span>";
 
                 tbl += '<tr>'
-                + '<td>' +  code.replace(/; /g, '<br/>') + '</td>'
-                + '<td title="' + (res1 ? (res1.toString()) : '') +'">' +  exp1 + '</td>'
-                + '<td title="' + (res2 ? (res2.toString()) : '') +'">' +  exp2 + '</td>'
-                + '<td><span class="' + eqQuirkySensible + '">' + eqQuirky + '</span><br/>'
-                + '    <span class="' + eqStrictSensible + '">' + eqStrict + '</span></td>'
-                + getMaybeMergedColumns((typeof res1) + '<br/>' + type1, (typeof res2)+ '<br/>' + type2);
-                //+ getMaybeMergedColumns(typeof res1, typeof res2);
-                //+ getMaybeMergedColumns(type1, type2);
-
-                tbl += '</tr>';
+                    + '<td>' +  code.replace(/; /g, '<br/>') + '</td>'
+                    + '<td title="' + (res1 ? (res1.toString()) : '') +'">' +  exp1 + '</td>'
+                    + '<td title="' + (res2 ? (res2.toString()) : '') +'">' +  exp2 + '</td>'
+                    + '<td><span class="' + eqQuirkySensible + '">' + eqQuirky + '</span><br/>'
+                    + '    <span class="' + eqStrictSensible + '">' + eqStrict + '</span></td>'
+                    + getMaybeMergedColumns((typeof res1) + '<br/>' + type1, (typeof res2)+ '<br/>' + type2)
+                    //+ getMaybeMergedColumns(typeof res1, typeof res2);
+                    //+ getMaybeMergedColumns(type1, type2);
+                    + '</tr>';
             }
 
 
