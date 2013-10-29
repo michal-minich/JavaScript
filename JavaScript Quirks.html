@@ -69,64 +69,6 @@
             var tbl = '';
 
 
-            function startTable2 (caption)
-            {
-                if (tbls !== '')
-                    endTable();
-
-                tbls += '<table><caption>' + caption + '</caption><thead><tr>'
-                        + '<th>exp</th>'
-                        + '<th>parseFloat<br/>(exp)</th>'
-                        + '<th>Prefix<br/>+exp</th>'
-                        + '<th>Bitwise Or<br/>exp|0</th>'
-                        + '<th>parseInt<br/>(exp)</th>'
-                        + '<th>parseInt<br/>(exp, 8)</th>'
-                        + '<th>parseInt<br/>(exp, 10)</th>'
-                        + '<th>parseInt<br/>(exp, 16)</th>'
-                        + '</tr></thead>';
-            }
-
-
-            function startTable (caption)
-            {
-                if (tbls !== '')
-                    endTable();
-
-                tbls += '<table><caption>' + caption + '</caption><thead><tr>'
-                    + '<th>Code</th>'
-                    + '<th>Expression 1</th>'
-                    + '<th>Expression 2</th>'
-                    + '<th <span title="Equality with implicit type conversion">==</span><br/>'
-                    + '    <span title="Strict equality">===</span></th>'
-                    + '<th>typeof 1<br/>instanceof 1</th>'
-                    + '<th>typeof 2<br/>instanceof 2</th>'
-                    + '</tr></thead>';
-
-            }
-
-
-            function endTable ()
-            {
-                tbls += '<tbody>' + tbl + '</tbody></table>';
-                if (arguments.length)
-                    list(arguments);
-                tbls += '<div class="table-line-spacer"></div>';
-                tbl = '';
-            }
-
-
-            function list (items)
-            {
-                tbls += '<ul>';
-                for (var i = 0; i < items.length; i++)
-                {
-                    var c = items[i];
-                    tbls += '<li>' + c + '</li>';
-                }
-                tbls += '</ul>'
-            }
-
-
             function start ()
             {
                 // -------- simple
@@ -196,6 +138,7 @@
                 add('', '/ab+c/', '/ab+c/', true, true);
                 add('var r = /ab+c/', 'r', ' r', true, true);
                 add('', '"xxx".replace("x", "y")', '"yxx"', "notice", "notice");
+                add('', '"xxx".replace(/x/g, "y")', '"yyy"', true, true);
                 endTable("Note that String.replace function accepts regular expression");
 
                 startTable("Date");
@@ -203,6 +146,12 @@
                 add('', 'new Date(2013, 13, 1).toString()', 'new Date(2014, 1, 1).toString()', "maybe", "maybe");
                 add('', 'new Date(1999, 11, 31)', 'new Date(1999, 11, 31)', "maybe", "maybe");
                 add('', 'new Date(1999, 12, 31)', 'new Date()', "maybe", "maybe");
+                add('', 'new Date()', 'new Date().getTime()', true, "maybe");
+                add('', 'new Date(2013, 11, 31, 23, 59, 59,  999)', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
+                add('', 'new Date(2013, 11, 31, 23, 59, 59, 1000)', '"Wed Jan 01 2014 00:00:00 GMT+0100 (Central Europe Daylight Time)"', true, true);
+                add('', 'new Date("Tue Dec 31 2013 23:59:59")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
+                add('', 'new Date("2013-12-31T23:59:59.1000")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
+
                 endTable("In Date constructor: Month is in interval from 0 to 11. Year, and Day are from 1.",
                          "Calling new Date() will return instance of Date object with current local date and time",
                          "Calling Date without new (like Date(\"2013-12-31\")) will always return string of current date.");
@@ -239,6 +188,53 @@
                 document.getElementById('js-special').innerHTML += tbls;
                 tbls = '';
 
+                // ---------- Type Conversions - Numeric
+
+                startTableNum("Converting to Number - various misc expressions");
+                addNum('undefined', '1111111');
+                addNum('null', '1!11111');
+                addNum('NaN', '1111111');
+                addNum('+Infinity', '1111111');
+                addNum('-Infinity', '1111111');
+                addNum('(function x () {})', '1111110');
+                addNum('({})', '1111111');
+                endTable("Bitwise Or | always returns integer, never floating ponit values like NaN or Infinity.");
+
+                startTableNum("Converting to Number - arrays");
+                addNum('[]', '1?11111');
+                addNum('new Array()', '1?11111');
+                addNum('[1, 2]', '0110000');
+                addNum('new Array(1, 2)', '0110000');
+                addNum('new Date()', '1!01111');
+                addNum('new RegExp()', '1111111');
+
+                startTableNum("Converting to Number - booleanish expressions");
+                addNum('0', '1111111');
+                addNum('1', '1111111');
+                addNum('false', '1!!1110');
+                addNum('true', '1!!1111');
+                addNum('"0"', '1111111');
+                addNum('"1"', '1111111');
+                addNum('"true"', '1101111');
+                addNum('"false"', '11?1110');
+                endTable();
+
+                startTableNum("Converting to Number - numerish expressions");
+                addNum('123', '1111111');
+                addNum('0123', '1111000');
+                addNum('-0123', '1111000');
+                addNum('"0123"', '???????');
+                addNum('"-0123"', '???????');
+                addNum('3.14', '1111111');
+                addNum('314e-2', '1111111');
+                addNum('0xFF', '1111000');
+                addNum('-0xFF', '1111000');
+                endTable();
+
+                document.getElementById('num-conversions').innerHTML += tbls;
+                tbls = '';
+
+
                 // ---------- Type Conversions - Boolean
 
                 startTable("to Boolean - only implicitly convertible expressions when using true/false");
@@ -253,122 +249,72 @@
                         "Other values are neither true or false when comparing to true or false literal",
                         "Note that using in <b>if</b> or <b>comparison ? :</b> expression might give different result");
 
-                startTable("to Boolean - inside <b>if</b> statement");
-                add('', 'true', '(1 ? true : false)', true, true);
-                add('', 'true', '("1" ? true : false)', "maybe", "maybe");
-                add('', 'false', '(0 ? true : false)', true, true);
-                add('', 'true', '("0" ? true : false)', false, false);
-                add('', 'false', '("" ? true : false)', true, true);
-                add('', 'true', '([] ? true : false)', false, false);
-                add('', 'true', '(new Boolean(false) ? true : false)', false, false);
-                add('', 'false', '(null ? true : false)', true, true);
-                add('', 'false', '(undefined ? true : false)', true, true);
-                add('', 'false', '(NaN ? true : false)', true, true);
-                endTable("Always enclose ? : expression inside braces. Operator precedence rules are not favorable in this case.",
-                        "These are considered <b>false</b> for <b>if</b> statement, in addition to above mentioned values explicitly compared to true / false" +
-                        ": null, undefined, NaN, and any Object - including empty and Boolean(true)",
-                        "That means it makes difference to write <b>if (a == true) ...</b> vs <b>if (a) ...</b>");
+                /*
+                 endTable("Always enclose ? : expression inside braces. Operator precedence rules are not favorable in this case.",
+                 "These are considered <b>false</b> for <b>if</b> statement, in addition to above mentioned values explicitly compared to true / false" +
+                 ": null, undefined, NaN, and any Object - including empty and Boolean(true)",
+                 "That means it makes difference to write <b>if (a == true) ...</b> vs <b>if (a) ...</b>");
 
-                startTable("Expressions not implicitly convertible to Boolean");
-                add('', 'true', '2', "maybe", true);
-                add('', 'false', '2', "maybe", true);
-                add('', 'true', '-1', "maybe", true);
-                add('', 'false', '-1', "maybe", true);
-                add('', 'true', '{}', "maybe", true);
-                add('', 'false', '{}', "maybe", true);
-                add('var o = {}', 'true', 'o', "maybe", true);
-                add('var o = {}', 'false', 'o', "maybe", true);
-                add('', 'true', '"false"', "maybe", true);
-                add('', 'false', '"false"', "maybe", true);
-                add('', 'true', '"true"', "maybe", true);
-                add('', 'false', '"true"', "maybe", true);
-                add('', 'true', '"abc"', "maybe", true);
-                add('', 'false', '"abc"', "maybe", true);
-                add('', 'true', 'NaN', "maybe", true);
-                add('', 'false', 'NaN', "maybe", true);
-                add('', 'true', 'Infinity', "maybe", true);
-                add('', 'false', 'Infinity', "maybe", true);
-                add('', 'true', '-Infinity', "maybe", true);
-                add('', 'false', '-Infinity', "maybe", true);
-                add('', 'true', 'null', "maybe", true);
-                add('', 'false', 'null', "maybe", true);
-                add('', 'true', 'undefined', "maybe", true);
-                add('', 'false', 'undefined', "maybe", true);
-                add('', 'false', 'function x () {}', "maybe", true);
-                add('', 'true', 'function x () {}', "maybe", true);
+                 endTable("All numbers (including infinities) except <b>0</b> and <b>NaN</b>  are converted to true",
+                 "All strings except empty string <b>\"\"</b>  are converted to true",
+                 "!! Converts everything to true except <b>0</b>, <b>NaN</b>, <b>\"\"</b> , <b>null</b> and <b>undefined</b>.");
+                 */
 
-                startTable("to Boolean - explicit conversion using using double negation !! and constructor");
-                add('/* true */', '!!1', 'new Boolean(1)', true, true);
-                add('/* true */', '!!2', 'new Boolean(2)', true, true);
-                add('/* true */', '!!+Infinity', 'new Boolean(+Infinity)', true, true);
-                add('/* true */', '!!-Infinity', 'new Boolean(-Infinity)', true, true);
-                add('/* true */', '!!"1"', 'new Boolean("1")', true, true);
-                add('/* true */', '!!"0"', 'new Boolean("0")', false, true);
-                add('/* true */', '!!"abc"', 'new Boolean("abc")', true, true);
-                add('/* true */', '!![]', 'new Boolean([])', false, true);
-                add('/* true */', '!!{}', 'new Boolean({})', "maybe", true);
-                add('/* true */', '!!function x () {}', 'new Boolean(function x () {})', "maybe", true);
-                add('/* false */', '!!false', 'new Boolean(false)', true, false);
-                add('/* false */', '!!""', 'new Boolean("")', true, true);
-                add('/* false */', '!!0', 'new Boolean(0)', true, true);
-                add('/* false */', '!!null', 'new Boolean(null)', true, true);
-                add('/* false */', '!!undefined', 'new Boolean(undefined)', true, true);
-                add('/* false */', '!!NaN', 'new Boolean(NaN)', true, true);
-                add('/* false */', 'false', 'new Boolean()', true, true);
-                endTable("All numbers (including infinities) except <b>0</b> and <b>NaN</b>  are converted to true",
-                        "All strings except empty string <b>\"\"</b>  are converted to true",
-                        "!! Converts everything to true except <b>0</b>, <b>NaN</b>, <b>\"\"</b> , <b>null</b> and <b>undefined</b>.");
+                // ---------- Type Conversions - Boolean
 
+                startTableBool("Converting to Boolean - various misc expressions");
+                addBool('undefined', '1111...11');
+                addBool('null', '1111...11');
+                addBool('NaN', '1111...11');
+                addBool('+Infinity', '0000...11');
+                addBool('-Infinity', '0000...11');
+                addBool('(function x () {})', '0000...11');
+                addBool('({})', '0000...11');
+                endTable("Double negation is evaluated in this order !(!exp)",
+                        "Switch is following: switch (exp) { case true: return true; case false: return false; }",
+                        "for == and === equality expressions - only if both directions are the same it can be other color than red. "+
+                                "i.e. when x == true is the same result as x != false");
+
+                startTableBool("Converting to Number - arrays");
+                addBool('[]', '0000.0011');
+                addBool('new Array()', '0000.0011');
+                addBool('[1, 2]', '0000...11');
+                addBool('new Array(1, 2)', '0000...11');
+                addBool('new Date()', '0000...11');
+                addBool('new RegExp()', '0000...11');
+                endTable("+ means that the equality expression (== or ===) when reversed get also reversed result." +
+                        "i.e when x == true should is the same result as x != false");
+
+                startTableBool("Converting to Boolean - booleanish expressions");
+                addBool('0', '1111.11..');
+                addBool('1', '1111.11..');
+                addBool('false', '111111111');
+                addBool('true', '111111111');
+                addBool('"0"', '0000.11..');
+                addBool('"1"', '????.11..');
+                addBool('"false"', '0000...11');
+                addBool('"true"', '????...11');
                 endTable();
+
+                startTableBool("Converting to Boolean - numerish expressions");
+                addBool('123', '0000...11');
+                addBool('0123', '0000...11');
+                addBool('-0123', '0000...11');
+                addBool('"0123"', '0000...11');
+                addBool('"-0123"', '0000...11');
+                addBool('3.14', '0000...11');
+                addBool('314e-2', '0000...11');
+                addBool('0xFF', '0000...11');
+                addBool('-0xFF', '0000...11');
+                endTable();
+                endTable();
+
+                startTableBool("Converting to Boolean - Boolean object");
+                addBool('new Boolean(true)',  '?0??.1100');
+                addBool('new Boolean(false)', '0?00.11??');
+                endTable();
+
                 document.getElementById('bool-conversions').innerHTML += tbls;
-                tbls = '';
-
-                // ---------- Type Conversions - Numeric
-
-                startTable("To Number - using arithmetic");
-                add('/* "1230" */', '123', '"123" + 0', true, true);
-                add('/* "0123" */', '123', '0 + "123"', true, false);
-                add('', '123', '0123', "maybe", "maybe");
-                add('/* "456" */', '456', '+"456"', true, true);
-                add('/* 333 */', '333', '"333" - 0', true, true);
-                add('/* -333 */', '333', '0 - "333"', true, true);
-                add('/* 444 */', '444', '"444" * 1', true, true);
-                add('/* 444 */', '444', '1 * "444"', true, true);
-                add('/* 555 */', '555', '"555" / 1', true, true);
-                add('', '"10023"', '"100" + "23"', true, true);
-                add('', '123', '+"123"', true, true);
-                add('', '0', '+""', "maybe", "maybe");
-                add('', '1', '+true', "notice", "notice");
-                add('', '0', '+false', "notice", "notice");
-                add('', '0', '+null', "notice", "notice");
-                add('', '+undefined != +undefined', 'true', true, true);
-                add('', '+{} != +{}', 'true', true, true);
-                add('var x = +(function () {})', 'x != x', 'true', true, true);
-                endTable("Convert string to number is possible by prefixing it with +, subtract 0, multiply by 1 or divide by 1",
-                         "Usual way to convert string to number is by prefixing plus before string, like: <b>+\"123\"</b>",
-                         "If one operand is number then string is converted to number first.");
-
-                startTable("To Number - parseInt");
-                add('', '123', 'parseInt("123")', true, true);
-                add('', '123', 'parseInt("123.9")', true, true);
-                add('', '123', 'parseInt("0123")', "notice", "notice");
-                add('/* NaN */', 'true', 'parseInt("") != parseInt("")', true, true);
-                add('', '3', 'parseInt("3.14E-2")', "notice", "notice");
-                endTable("parseInt does not understand and auto detecsts all forms of JavaScript numbers",
-                         "It accepts second parameter which can be number 8, 10 or 16 which means number base");
-
-                startTable("To Number - parseFloat");
-                add('', '3.14', 'parseFloat("3.14")', true, true);
-                add('', '0.0314', 'parseFloat("3.14E-2")', true, true);
-                add('', '3.14', 'parseFloat("3.14px")', true, true);
-                endTable("parseFloat can be used to strip units like px, em, % or pt from CSS values");
-
-                startTable("To Number - using operator | to convert to int32");
-                add('/* "" */', '123', '(123.9|0)', true, true);
-
-
-                endTable();
-                document.getElementById('num-conversions').innerHTML += tbls;
                 tbls = '';
 
 
@@ -377,21 +323,9 @@
                 startTable("To String");
                 add('', '"1"', '"" + 1', true, true);
                 add('', '"1"', 'new String(1)', true, "maybe");
+                endTable("Wrapper expression new String(...) is is <u>completely unnecessary</u>,. Use <b>\"\" + exp</b> instead");
 
-                endTable();
                 document.getElementById('string-conversions').innerHTML += tbls;
-                tbls = '';
-
-                // ---------- Type Conversions - Date
-
-                startTable("To Date");
-                add('', 'new Date()', 'new Date().getTime()', true, "maybe");
-                add('', 'new Date(2013, 11, 31, 23, 59, 59,  999)', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
-                add('', 'new Date(2013, 11, 31, 23, 59, 59, 1000)', '"Wed Jan 01 2014 00:00:00 GMT+0100 (Central Europe Daylight Time)"', true, true);
-                add('', 'new Date("Tue Dec 31 2013 23:59:59")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
-                add('', 'new Date("2013-12-31T23:59:59.1000")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
-                endTable();
-                document.getElementById('date-conversions').innerHTML += tbls;
                 tbls = '';
 
                 // ---------- other
@@ -416,66 +350,187 @@
                          "You can precisely test for NaN with expression (<b>a != a</b>) (don't use function <b>isNaN</b> because it is quirky)",
                          "Any operation involving <b>NaN</b> will result in <b>NaN</b> <span class='grayText'>(not specific to JS)</span>");
 
-                document.getElementById('other').innerHTML += tbls;
-                tbl = '';
-                tbls = '';
-
-                startTable2("Converting to Number - various expressions");
-                add2('undefined');
-                add2('null');
-                add2('NaN');
-                add2('+Infinity');
-                add2('-Infinity');
-                add2('(function x () {})');
-                add2('({})');
-                add2('[]');
-                add2('new Array()');
-                add2('new Date()');
-                add2('new RegExp()');
-
-                startTable2("Converting to Number - booleanish expressions");
-                add2('false');
-                add2('"false"');
-                add2('true');
-                add2('"true"');
-                add2('0');
-                add2('"0"');
-                add2('1');
-                add2('"1"');
-
-                startTable2("Converting to Number - numerish expressions");
-                add2('123');
-                add2('0123');
-                add2('-0123');
-                add2('"0123"');
-                add2('"-0123"');
-                add2('3.14');
-                add2('314e-2');
-                add2('0xFF');
-                add2('-0xFF');
-                add2('"0123"');
-                add2('"-0123"');
-                endTable("bla");
-
+                startTable("X Files");
+                add('', '[] + []', '""', false, false);
+                add('', '[] + {}', '({})', false, false);
+                add('', '{} + []', '0', false, false);
+                add('', '{} + {}', '"Don\'t know"', false, false);
                 endTable();
+
                 document.getElementById('other').innerHTML += tbls;
                 tbl = '';
                 tbls = '';
             }
 
 
-            function add2 (code)
+            function startTableBool (caption)
             {
+                if (tbls !== '')
+                    endTable();
+
+                tbls += '<table><caption>' + caption + '</caption><thead><tr>'
+                        + '<th>exp</th>'
+                        + '<th>Double<br/>negation !!exp</th>'
+                        + '<th>new Boolean<br/>(exp)</th>'
+                        + '<th>if (exp)<br/>t else f</th>'
+                        + '<th>exp ?<br/>t : f</th>'
+                        + '<th>switch (exp)</th>'
+                        + '<th>exp<br/>== true</th>'
+                        + '<th>exp<br/>== false</th>'
+                        + '<th>exp<br/>=== true</th>'
+                        + '<th>exp<br/>=== false</th>'
+                        + '</tr></thead>';
+            }
+
+
+            function addBool(code, colors)
+            {
+                if (typeof colors === "undefined")
+                    colors = '..............';
+
+                tbl += '<tr>';
+                tbl += '<td>' +  code.replace(/; /g, '<br/>') + '</td>';
+
+                var exp = eval("!!" + code);
+                tbl += getBoolText(exp, 0, colors);
+
+                //var exp = eval("!!+" + code);
+                //tbl += getBoolText(exp, 0, colors);
+
+                exp = eval("new Boolean(" + code + ")");
+                tbl += getBoolText(exp, 1, colors);
+
+                exp = eval("(function () { if (" + code + ") return true; else return false; })()");
+                tbl += getBoolText(exp, 2, colors);
+
+                exp = eval(code + "? true : false");
+                tbl += getBoolText(exp, 3, colors);
+
+                exp = eval("(function () { switch (" + code + ") { case true: return true; case false: return false; }})()");
+                tbl += getBoolText(exp, 4, colors);
+
+                exp = eval(code + " == true");
+                var exp2 = eval("(" + code + " != false)");
+                tbl += getBoolText(exp, 5, colors, exp2);
+
+                exp = eval(code + " == false");
+                exp2 = eval("(" + code + " != true)");
+                tbl += getBoolText(exp, 6, colors, exp2);
+
+                exp = eval(code + " === true");
+                exp2 = eval("(" + code + " !== false)");
+                tbl += getBoolText(exp, 7, colors, exp2);
+
+                exp = eval(code + " === false");
+                exp2 = eval("(" + code + " !== true)");
+                tbl += getBoolText(exp, 8, colors, exp2);
+
+                tbl += '</tr>';
+            }
+
+
+            function getBoolText (exp, ix, colors, exp2) {
+                var expText;
+                if (exp instanceof Boolean)
+                    expText = exp == true ? exp : "f";
+                else
+                    expText = exp === false ? "f" : exp;
+
+                if (typeof exp2 !== "undefined")   {
+                    expText += exp == exp2 ? ' +' : '';
+                }
+
+                return '<td class="' + getBoolColorName(colors[ix], exp, exp2) + '">' + expText + '</td>';
+            }
+
+
+            function getBoolColorName (color, exp, exp2) {
+                if (typeof exp === "undefined") {
+                    return 'true';
+                } else if (typeof exp2 !== "undefined" && exp != exp2) {
+                    return 'false';
+                } else if (color === '.') {
+                    switch (exp) {
+                        case true: return '';
+                        case false : return 'grayText';
+                        default:
+                            if (exp instanceof Boolean) {
+                                if (exp == true)
+                                    return '';
+                                else
+                                    return 'grayText';
+                            } else {
+                                return '';
+                            }
+                    }
+                } else {
+                    return getColorName(color);
+                }
+            }
+
+
+            function getColorName (color) {
+                switch (color) {
+                    case '1' : return 'true';
+                    case '0' : return 'false';
+                    case '?' : return 'maybe';
+                    case '!' : return 'notice';
+                    default: return '';
+                }
+            }
+
+
+            function startTableNum (caption)
+            {
+                if (tbls !== '')
+                    endTable();
+
+                tbls += '<table><caption>' + caption + '</caption><thead><tr>'
+                        + '<th>exp</th>'
+                        + '<th>parseFloat<br/>(exp)</th>'
+                        + '<th>Prefix<br/>+exp</th>'
+                        + '<th>Bitwise Or<br/>exp|0</th>'
+                        + '<th>parseInt<br/>(exp)</th>'
+                        + '<th>parseInt<br/>(exp, 8)</th>'
+                        + '<th>parseInt<br/>(exp, 10)</th>'
+                        + '<th>parseInt<br/>(exp, 16)</th>'
+                        + '</tr></thead>';
+            }
+
+
+            function addNum (code, colors)
+            {
+                if (typeof colors === "undefined")
+                    colors = '..............';
+
                 tbl += '<tr>'
                     + '<td>' +  code.replace(/; /g, '<br/>') + '</td>'
-                    + '<td>' +  eval(code + "|0") + '</td>'
-                    + '<td>' +  eval("+" + code) + '</td>'
-                    + '<td>' +  eval("parseFloat(" + code + ")") + '</td>'
-                    + '<td>' +  eval("parseInt(" + code + ")") + '</td>'
-                    + '<td>' +  eval("parseInt(" + code + ", 8)") + '</td>'
-                    + '<td>' +  eval("parseInt(" + code + ", 10)") + '</td>'
-                    + '<td>' +  eval("parseInt(" + code + ", 16)") + '</td>'
+                    + '<td class="' + getColorName(colors[0]) + '">' +  eval("parseFloat(" + code + ")") + '</td>'
+                    + '<td class="' + getColorName(colors[1]) + '">' +  eval("+" + code) + '</td>'
+                    + '<td class="' + getColorName(colors[2]) + '">' +  eval(code + "|0") + '</td>'
+                    + '<td class="' + getColorName(colors[3]) + '">' +  eval("parseInt(" + code + ")") + '</td>'
+                    + '<td class="' + getColorName(colors[4]) + '">' +  eval("parseInt(" + code + ", 8)") + '</td>'
+                    + '<td class="' + getColorName(colors[5]) + '">' +  eval("parseInt(" + code + ", 10)") + '</td>'
+                    + '<td class="' + getColorName(colors[6]) + '">' +  eval("parseInt(" + code + ", 16)") + '</td>'
                     + '</tr>';
+            }
+
+
+            function startTable (caption)
+            {
+                if (tbls !== '')
+                    endTable();
+
+                tbls += '<table><caption>' + caption + '</caption><thead><tr>'
+                        + '<th>Code</th>'
+                        + '<th>Expression 1</th>'
+                        + '<th>Expression 2</th>'
+                        + '<th <span title="Equality with implicit type conversion">==</span><br/>'
+                        + '    <span title="Strict equality">===</span></th>'
+                        + '<th>typeof 1<br/>instanceof 1</th>'
+                        + '<th>typeof 2<br/>instanceof 2</th>'
+                        + '</tr></thead>';
+
             }
 
 
@@ -487,11 +542,11 @@
                 if(typeof eqStrictSensible === "undefined")
                     eqStrictSensible = "maybe";
 
-                var eqQuirky = e(code + '\n' + exp1 + ' == ' + exp2);
-                var eqStrict = e(code + '\n' + exp1 + ' === ' + exp2);
+                var eqQuirky = eval(code + '\n' + exp1 + ' == ' + exp2);
+                var eqStrict = eval(code + '\n' + exp1 + ' === ' + exp2);
 
-                var res1 = e(code + '\n' + exp1);
-                var res2 = e(code + '\n' + exp2);
+                var res1 = eval(code + '\n' + exp1);
+                var res2 = eval(code + '\n' + exp2);
 
                 var type1 = getTypeName(res1);
                 var type2 = getTypeName(res2);
@@ -512,23 +567,39 @@
             }
 
 
+            function endTable ()
+            {
+                tbls += '<tbody>' + tbl + '</tbody></table>';
+                if (arguments.length)
+                    list(arguments);
+                tbls += '<div class="table-line-spacer"></div>';
+                tbl = '';
+            }
+
+
+            function list (items)
+            {
+                tbls += '<ul>';
+                for (var i = 0; i < items.length; i++)
+                {
+                    var c = items[i];
+                    tbls += '<li>' + c + '</li>';
+                }
+                tbls += '</ul>'
+            }
+
+
             function getMaybeMergedColumns (a, b)
             {
                 var res = '';
-                if (a !== b)
-                {
-                    res = '<td>' + a + '</td><td>' + b + '</td>'
-                }
-                else
-                {
+                if (a === b) {
                     res = '<td colspan="2" class="center">' + a + '</td>'
+                } else {
+                    res = '<td>' + a + '</td><td>' + b + '</td>'
                 }
 
                 return res;
             }
-
-
-            function e (code /*:string*/) { return eval(code); }
 
 
             function getTypeName (exp)
@@ -552,14 +623,14 @@
     </head>
 
     <body onload="start();">
-        <h1>JavaScript<span class="printLineBreak"/> Dynamic Typing Quirks</h1>
+        <h1>JavaScript<span class="printLineBreak"></span> Dynamic Typing Quirks</h1>
         <ul class="printDisplayOnly">
             <li>Introduction to Javascript values and types</li>
             <li><b>Creation</b> of values of simple and complex types</li>
             <li><b>Implicit</b> and <b>explicit</b> <b>conversions</b> between values of simple types</li>
             <li>Summary and <b>recommendations</b> for best practices</li>
         </ul>
-        <h2>Introduction to Javascript<span class="printLineBreak"/> Values and Types</h2>
+        <h2>Introduction to Javascript<span class="printLineBreak"></span> Values and Types</h2>
         <span class="printPageBreak"></span>
         <ul>
             <li><b>Value Types</b>
@@ -605,11 +676,11 @@
             </li>
         </ul>
         <ul class="printPageBreak">
-            <li>How to undersntads colors further in the document</li>
+            <li>How to understands colors further in the document
                 <ul>
-                    <li><b class="true">green</b> - everything is all right and works as expected</span></li>
+                    <li><b class="true">green</b> - everything is all right and works as expected</li>
                     <li><b class="notice">blue</b> - everything is all right, but might be little unexpected</li>
-                    <li><b class="maybe">oragne</b> - this behaviour could be seen as wrong, i.e. when considering other similar language constructs</li>
+                    <li><b class="maybe">orange</b> - this behaviour could be seen as wrong, i.e. when considering other similar language constructs</li>
                     <li><b class="false">red</b> - completely wrong and unexpected behaviour</li>
                 </ul>
             </li>
@@ -626,20 +697,15 @@
         <div id="js-special"></div>
 
         <hr>
+        <h2>Type Conversions - to Number</h2>
+        <div id="num-conversions"></div>
+
         <h2>Type Conversions - to Boolean</h2>
         <div id="bool-conversions"></div>
 
         <hr>
-        <h2>Type Conversions - to Number</h2>
-        <div id="num-conversions"></div>
-
-        <hr>
         <h2>Type Conversions - to String</h2>
         <div id="string-conversions"></div>
-
-        <hr>
-        <h2>Type Conversions - to Date</h2>
-        <div id="date-conversions"></div>
 
         <hr>
         <h2>Other</h2>
@@ -654,31 +720,23 @@
                     <li>new Number(...)</li>
                     <li>new String(...)</li>
                 </ul>
+                <br/>
             </li>
-            <br>
+            <li><b>When Converting, <u>Use</u></b>
+                <ul>
+                    <li><b>!!boleanish</b> <span class="grayText">to convert value of any type to Boolean</span></li>
+                    <li><b>+numberis</b> <span class="grayText">to convert value of any type to Number</span></li>
+                    <li><b>"" + anything</b> <span class="grayText">to convert value of any type to String</span></li>
+                </ul>
+                <br/>
+            </li>
             <li><b>When Creating new Object, <u>Don't Use</u></b>
                 <ul>
                     <li>new Boolean(...)</li>
                     <li>new Number(...)</li>
                     <li>new String(...)</li>
-                    <li>new Object(...)</li>
-                    <li>new Array(...)</li>
-                </ul>
-            </li>
-            <br>
-            <li><b>When Converting, <u>Use</u></b>
-                <ul>
-                    <li><b>!!</b>boleanish <span class="grayText">to convert value of any type to Boolean</span></li>
-                    <li><b>+</b> numberis <span class="grayText">to convert value of any type to Number</span></li>
-                    <li><b>"" +</b> stringish <span class="grayText">to convert value of any type to String</span></li>
-                </ul>
-                <br/>
-            </li>
-            <li><b><u>Use</u> reliable alternatives instead of quirky ones</b>
-                <ul>
-                    <li>Use <b>x != x</b> to identify NaN <span class="grayText">instead of function isNaN</span></li>
-                    <li><b>+</b>numberis <span class="grayText">to convert value of any type to Number</span></li>
-                    <li><b>"" +</b> stringish <span class="grayText">to convert value of any type to String</span></li>
+                    <li>new Object(...), use {}</li>
+                    <li>new Array(...), use []</li>
                 </ul>
                 <br/>
             </li>
@@ -686,10 +744,11 @@
                 <ul>
                     <li>String.<b>replace</b> uses regular expression instead of exact string</li>
                     <li>Any operation involving <b>NaN</b> will result in <b>NaN</b> <span class="grayText">(not specific to JS)</span></li>
-                    <li>Use strict equality whenever possible (<b>!==</b>) (<b>===</b>).</li>
+                    <li>Use <b>x != x</b> to identify NaN <span class="grayText">instead of function isNaN</span></li>
+                    <li>Use strict equality whenever possible (<b>!==</b>) (<b>===</b>)</li>
                     <li>Be careful when writing if condition what implicitly converts to Boolean -
                         <b>"1"</b> /  <b>"0"</b> yes,  <b>"true"</b> /  <b>"false"</b> not...</li>
-                    <li>Be extra careful with booleanish values, what is false when implicitly compared to bool might not be false inside if implicitly converted.</li>
+                    <li>Be extra careful with booleanish values, explicit comparison to true/false might not be give the same result as inside "if" implicitly converted</li>
                 </ul>
                 <br/>
             </li>
