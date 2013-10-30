@@ -146,11 +146,12 @@
                 add('', 'new Date(2013, 13, 1).toString()', 'new Date(2014, 1, 1).toString()', "maybe", "maybe");
                 add('', 'new Date(1999, 11, 31)', 'new Date(1999, 11, 31)', "maybe", "maybe");
                 add('', 'new Date(1999, 12, 31)', 'new Date()', "maybe", "maybe");
-                add('', 'new Date()', 'new Date().getTime()', true, "maybe");
-                add('', 'new Date(2013, 11, 31, 23, 59, 59,  999)', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
-                add('', 'new Date(2013, 11, 31, 23, 59, 59, 1000)', '"Wed Jan 01 2014 00:00:00 GMT+0100 (Central Europe Daylight Time)"', true, true);
-                add('', 'new Date("Tue Dec 31 2013 23:59:59")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
-                add('', 'new Date("2013-12-31T23:59:59.1000")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Daylight Time)"', true, "maybe");
+                add('/* 0-11 */', 'new Date(2013, 11, 31, 1).getMonth()', '11', "notice", "notice");
+                add('/* 0-6 */', 'new Date(2013, 11, 31, 1).getDay()', '2', "notice", "notice");
+                add('', 'new Date(2013, 11, 31, 23, 59, 59,  999)', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Standard Time)"', true, "maybe");
+                add('', 'new Date(2013, 11, 31, 23, 59, 59, 1000)', '"Wed Jan 01 2014 00:00:00 GMT+0100 (Central Europe Standard Time)"', true, true);
+                add('', 'new Date("Tue Dec 31 2013 23:59:59")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Standard Time)"', true, "maybe");
+                add('', 'new Date("2013-12-31T23:59:59.1000")', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Standard Time)"', true, "maybe");
 
                 endTable("In Date constructor: Month is in interval from 0 to 11. Year, and Day are from 1.",
                          "Calling new Date() will return instance of Date object with current local date and time",
@@ -224,7 +225,7 @@
                 addNum('"true"', '1101111');
                 endTable();
 
-                startTableNum("Converting to Number - numerish expressions");
+                startTableNum("Converting to Number - numberish expressions");
                 addNum('123', '1111111');
                 addNum('3.14', '1111111');
                 addNum('314e-2', '1111111');
@@ -243,7 +244,7 @@
 
                 // ---------- Type Conversions - Boolean
 
-                startTableBool("Converting to Boolean - booleanis expressions");
+                startTableBool("Converting to Boolean - booleanish expressions");
                 addBool('undefined', '1111...11');
                 addBool('null', '1111...11');
                 addBool('NaN', '1111...11');
@@ -252,21 +253,23 @@
                 addBool('false', '111111111');
                 addBool('true', '111111111');
                 addBool('1', '1111.11..');
-                addBool('"0"', '0000.11..');
-                addBool('"1"', '????.11..');
-                addBool('new Boolean(false)', '0?00.11??');
-                addBool('new Boolean(true)',  '?0??.1100');
                 endTable("Double negation is evaluated in this order !(!exp)",
                         "Switch is following: switch (exp) { case true: return true; case false: return false; }",
                         "for == and === equality expressions - only if both directions are the same it can be other color than red. "+
                                 "i.e. when x == true is the same result as x != false",
                         "+ means that the equality expression (== or ===) when reversed get also reversed result." +
-                            "i.e when x == true should is the same result as x != false",
+                                "i.e when x == true should is the same result as x != false",
                         "Nnumbers: <b>0</b> and <b>NaN</b> are false, all others are true",
                         "Strings: empty string <b>\"\"</b> is false, all others are true",
                         "!! operator converts: <b>0</b>, <b>NaN</b>, <b>\"\"</b> , <b>null</b> and <b>undefined</b> to false, all others to true");
 
-                startTableBool("Converting to Number - not booleanis expressions");
+                startTableBool("Converting to Boolean - booleanish expressions part 2");
+                addBool('"0"', '0000.11..');
+                addBool('"1"', '????.11..');
+                addBool('new Boolean(false)', '0?00.11??');
+                addBool('new Boolean(true)',  '?0??.1100');
+
+                startTableBool("Converting to Number - not booleanish expressions");
                 addBool('[]', '0000.0011');
                 addBool('new Array()', '0000.0011');
                 addBool('[1, 2]', '0000...11');
@@ -752,7 +755,7 @@
                 <ul>
                 <li>Always enclose ? : expression inside braces. Operator precedence rules are not favorable in this case.</li>
                 <li>Use browser console if not sure.</li>
-                <li>When testing "if" in console, test both cases: <b>if ("true")</b> passes, so does  <b>if("false")</b>!</li>
+                <li>When testing "if" in console, test both branches: <b>if ("true")</b> passes, so does  <b>if("false")</b>!</li>
                </ul>
             </li>
         </ul>
