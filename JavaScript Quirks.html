@@ -78,7 +78,7 @@
                 add('', 'true', 'new Boolean(true)', true, "maybe");
                 add('', 'new Boolean(true)', 'new Boolean(true)', false, false);
                 endTable("Boolean has two values <b>true</b> and <b>false</b>, and two additional Boolean(true) and Boolean(false).",
-                         "Wrapper expression new Boolean(...) is is <u>completely unnecessary</u>. Use <b>true</b> / <b>false</b> instead");
+                         "Wrapper expression new Boolean(...) is is <u>completely unnecessary</u> and unusable. Use <b>true</b> / <b>false</b> instead");
 
                 startTable("String");
                 add('', '"abc"', '\'abc\'', true, true);
@@ -121,12 +121,12 @@
                 // ------- complex
 
                 startTable("Array");
-                add('', '[1, 2, 3]', 'new Array(1, 2, 3)', true, true);
+                add('', 'new Array(1, 2, 3)', '[1, 2, 3]', true, true);
                 add('', '[1, 2, 3]', '[1, 2, 3]', true, true);
                 add('var a = ["1", "2", "3"]', 'a', 'a', true, true);
-                add('', '1', '[123].length', true, true);
-                add('', '123', 'new Array(123).length', false, false);
-                add('', '1', 'new Array("123").length', true, true);
+                add('', '[123].length', '1', true, true);
+                add('', 'new Array(123).length', '123', false, false);
+                add('', 'new Array("123").length', '1', true, true);
                 endTable("To compare arrays you need to loop over each element",
                         "Arrays can be nested to crate multi-dimensional array",
                         "Wrapper expression new Array(...) is is <u>completely unnecessary</u> and confusing. Use [] instead",
@@ -134,7 +134,7 @@
                                 "then it means length of the array, not na item.");
 
                 startTable("RegExp");
-                add('', '/ab+c/', 'new RegExp(/ab+c/)', true, true);
+                add('', 'new RegExp(/ab+c/)', '/ab+c/', true, true);
                 add('', '/ab+c/', '/ab+c/', true, true);
                 add('var r = /ab+c/', 'r', ' r', true, true);
                 add('', '"xxx".replace("x", "y")', '"yxx"', "notice", "notice");
@@ -161,6 +161,7 @@
                 add('/* syntax error when swapped */', 'new Object()', '{}', true, true);
                 add('', '({})', '({})', true, true);
                 add('', 'new Object(123)', 'new Number(123)', false, false);
+                add('', 'new Object("abc")', 'new String("abc")', false, false);
                 endTable("Wrapper expression new Object(...) is is <u>completely unnecessary</u> and confusing. Use {} instead");
 
                 startTable("Function");
@@ -168,7 +169,7 @@
                 add('var z = function () {}; ', 'z', ' z', true, true);
                 add('function a () {}; function b () {}', 'a', 'b', true, true);
                 add('var c = function () {}; var d = function () {}', 'c', 'd', true, true);
-                add('', '""', 'new Function("return arguments[0]")', true, true);
+                add('var x = new Function("return arguments[0]")', 'x(123)', '123', true, true);
                 endTable("Instead of syntax <b>function x () {}</b> prefer <b>var x = function () {}</b>" +
                         " or <b>x: function () {}</b> <span class='grayText'>(inside object literal)</span> to define function," +
                         " for reason not explained in this document (scoping).</b>");
@@ -191,14 +192,17 @@
                 // ---------- Type Conversions - Numeric
 
                 startTableNum("Converting to Number - various misc expressions");
-                addNum('undefined', '1111111');
+                addNum('""', '1!11111');
                 addNum('null', '1!11111');
+                addNum('undefined', '1111111');
                 addNum('NaN', '1111111');
+                addNum('({})', '1111111');
+                addNum('(function x () {})', '1111110');
                 addNum('+Infinity', '1111111');
                 addNum('-Infinity', '1111111');
-                addNum('(function x () {})', '1111110');
-                addNum('({})', '1111111');
-                endTable("Bitwise Or | always returns integer, never floating ponit values like NaN or Infinity.");
+                endTable("parseFloat and prefix + returns floating point value",
+                        "parseInt return integer value (trims decimal places), but can also return values like NaN or Infinity",
+                         "Bitwise Or | always returns numeric values, and never values like NaN or Infinity.");
 
                 startTableNum("Converting to Number - arrays");
                 addNum('[]', '1?11111');
@@ -207,96 +211,74 @@
                 addNum('new Array(1, 2)', '0110000');
                 addNum('new Date()', '1!01111');
                 addNum('new RegExp()', '1111111');
+                endTable("Nothing useful here");
 
                 startTableNum("Converting to Number - booleanish expressions");
                 addNum('0', '1111111');
-                addNum('1', '1111111');
-                addNum('false', '1!!1110');
-                addNum('true', '1!!1111');
                 addNum('"0"', '1111111');
+                addNum('1', '1111111');
                 addNum('"1"', '1111111');
-                addNum('"true"', '1101111');
+                addNum('false', '1!!1110');
                 addNum('"false"', '11?1110');
+                addNum('true', '1!!1111');
+                addNum('"true"', '1101111');
                 endTable();
 
                 startTableNum("Converting to Number - numerish expressions");
                 addNum('123', '1111111');
+                addNum('3.14', '1111111');
+                addNum('314e-2', '1111111');
+                addNum('"3.14px"', '1111111');
+                addNum('"3.14%"', '1111111');
                 addNum('0123', '1111000');
                 addNum('-0123', '1111000');
                 addNum('"0123"', '???????');
                 addNum('"-0123"', '???????');
-                addNum('3.14', '1111111');
-                addNum('314e-2', '1111111');
+                addNum('"0xFF"', '?111??1');
                 addNum('0xFF', '1111000');
                 addNum('-0xFF', '1111000');
-                endTable();
+                endTable("parseFloat can be used to string CSS values of units like px, em, pt or %");
 
                 document.getElementById('num-conversions').innerHTML += tbls;
-                tbls = '';
-
 
                 // ---------- Type Conversions - Boolean
 
-                startTable("to Boolean - only implicitly convertible expressions when using true/false");
-                add('', 'true', '1', true, true);
-                add('', 'true', '"1"', true, true);
-                add('', 'false', '0', true, true);
-                add('', 'false', '"0"', "maybe", true);
-                add('', 'false', '""', true, true);
-                add('', 'false', '[]', "maybe", true);
-                add('', 'false', 'new Boolean(false)', true, false);
-                endTable("Only these values are comparable to true or false.",
-                        "Other values are neither true or false when comparing to true or false literal",
-                        "Note that using in <b>if</b> or <b>comparison ? :</b> expression might give different result");
-
-                /*
-                 endTable("Always enclose ? : expression inside braces. Operator precedence rules are not favorable in this case.",
-                 "These are considered <b>false</b> for <b>if</b> statement, in addition to above mentioned values explicitly compared to true / false" +
-                 ": null, undefined, NaN, and any Object - including empty and Boolean(true)",
-                 "That means it makes difference to write <b>if (a == true) ...</b> vs <b>if (a) ...</b>");
-
-                 endTable("All numbers (including infinities) except <b>0</b> and <b>NaN</b>  are converted to true",
-                 "All strings except empty string <b>\"\"</b>  are converted to true",
-                 "!! Converts everything to true except <b>0</b>, <b>NaN</b>, <b>\"\"</b> , <b>null</b> and <b>undefined</b>.");
-                 */
-
-                // ---------- Type Conversions - Boolean
-
-                startTableBool("Converting to Boolean - various misc expressions");
+                startTableBool("Converting to Boolean - booleanis expressions");
                 addBool('undefined', '1111...11');
                 addBool('null', '1111...11');
                 addBool('NaN', '1111...11');
-                addBool('+Infinity', '0000...11');
-                addBool('-Infinity', '0000...11');
-                addBool('(function x () {})', '0000...11');
-                addBool('({})', '0000...11');
+                addBool('""', '1111.11..');
+                addBool('0', '1111.11..');
+                addBool('false', '111111111');
+                addBool('true', '111111111');
+                addBool('1', '1111.11..');
+                addBool('"0"', '0000.11..');
+                addBool('"1"', '????.11..');
+                addBool('new Boolean(false)', '0?00.11??');
+                addBool('new Boolean(true)',  '?0??.1100');
                 endTable("Double negation is evaluated in this order !(!exp)",
                         "Switch is following: switch (exp) { case true: return true; case false: return false; }",
                         "for == and === equality expressions - only if both directions are the same it can be other color than red. "+
-                                "i.e. when x == true is the same result as x != false");
+                                "i.e. when x == true is the same result as x != false",
+                        "+ means that the equality expression (== or ===) when reversed get also reversed result." +
+                            "i.e when x == true should is the same result as x != false",
+                        "Nnumbers: <b>0</b> and <b>NaN</b> are false, all others are true",
+                        "Strings: empty string <b>\"\"</b> is false, all others are true",
+                        "!! operator converts: <b>0</b>, <b>NaN</b>, <b>\"\"</b> , <b>null</b> and <b>undefined</b> to false, all others to true");
 
-                startTableBool("Converting to Number - arrays");
+                startTableBool("Converting to Number - not booleanis expressions");
                 addBool('[]', '0000.0011');
                 addBool('new Array()', '0000.0011');
                 addBool('[1, 2]', '0000...11');
                 addBool('new Array(1, 2)', '0000...11');
-                addBool('new Date()', '0000...11');
-                addBool('new RegExp()', '0000...11');
-                endTable("+ means that the equality expression (== or ===) when reversed get also reversed result." +
-                        "i.e when x == true should is the same result as x != false");
-
-                startTableBool("Converting to Boolean - booleanish expressions");
-                addBool('0', '1111.11..');
-                addBool('1', '1111.11..');
-                addBool('false', '111111111');
-                addBool('true', '111111111');
-                addBool('"0"', '0000.11..');
-                addBool('"1"', '????.11..');
                 addBool('"false"', '0000...11');
                 addBool('"true"', '????...11');
-                endTable();
-
-                startTableBool("Converting to Boolean - numerish expressions");
+                addBool('+Infinity', '0000...11');
+                addBool('-Infinity', '0000...11');
+                addBool('(function x () {})', '0000...11');
+                addBool('({})', '0000...11');
+                addBool('new Date()', '0000...11');
+                addBool('new RegExp()', '0000...11');
                 addBool('123', '0000...11');
                 addBool('0123', '0000...11');
                 addBool('-0123', '0000...11');
@@ -306,13 +288,7 @@
                 addBool('314e-2', '0000...11');
                 addBool('0xFF', '0000...11');
                 addBool('-0xFF', '0000...11');
-                endTable();
-                endTable();
-
-                startTableBool("Converting to Boolean - Boolean object");
-                addBool('new Boolean(true)',  '?0??.1100');
-                addBool('new Boolean(false)', '0?00.11??');
-                endTable();
+                endTable("Values in last 4 columsn that doesn't have + are neither true or false when comparing to true or false literal");
 
                 document.getElementById('bool-conversions').innerHTML += tbls;
                 tbls = '';
@@ -328,7 +304,7 @@
                 document.getElementById('string-conversions').innerHTML += tbls;
                 tbls = '';
 
-                // ---------- other
+                // ---------- Other
 
                 startTable("NaN is not equal with anything, even with itself");
                 add('', 'NaN', 'NaN', true, true);
@@ -350,14 +326,20 @@
                          "You can precisely test for NaN with expression (<b>a != a</b>) (don't use function <b>isNaN</b> because it is quirky)",
                          "Any operation involving <b>NaN</b> will result in <b>NaN</b> <span class='grayText'>(not specific to JS)</span>");
 
-                startTable("X Files");
+                document.getElementById('other').innerHTML += tbls;
+                tbl = '';
+                tbls = '';
+
+                // ---------- X - Files
+
+                startTable("");
                 add('', '[] + []', '""', false, false);
                 add('', '[] + {}', '({})', false, false);
                 add('', '{} + []', '0', false, false);
                 add('', '{} + {}', '"Don\'t know"', false, false);
                 endTable();
 
-                document.getElementById('other').innerHTML += tbls;
+                document.getElementById('xfiles').innerHTML += tbls;
                 tbl = '';
                 tbls = '';
             }
@@ -513,6 +495,15 @@
                     + '<td class="' + getColorName(colors[5]) + '">' +  eval("parseInt(" + code + ", 10)") + '</td>'
                     + '<td class="' + getColorName(colors[6]) + '">' +  eval("parseInt(" + code + ", 16)") + '</td>'
                     + '</tr>';
+            }
+
+
+            function e(code){
+                try{
+                    return eval(code);
+                } catch (ex) {
+                    return ex;
+                }
             }
 
 
@@ -712,6 +703,10 @@
         <div id="other"></div>
 
         <hr>
+        <h2>X - Files</h2>
+        <div id="xfiles"></div>
+
+        <hr>
         <h2>Conclusion</h2>
         <ul>
             <li><b>When Converting, <u>Don't Use</u></b>
@@ -749,11 +744,13 @@
                     <li>Be careful when writing if condition what implicitly converts to Boolean -
                         <b>"1"</b> /  <b>"0"</b> yes,  <b>"true"</b> /  <b>"false"</b> not...</li>
                     <li>Be extra careful with booleanish values, explicit comparison to true/false might not be give the same result as inside "if" implicitly converted</li>
+                    <li>That means it makes difference to write <b>if (a == true) ...</b> vs <b>if (a) ...</b></li>
                 </ul>
                 <br/>
             </li>
             <li><b>Some general advices</b>
                 <ul>
+                <li>Always enclose ? : expression inside braces. Operator precedence rules are not favorable in this case.</li>
                 <li>Use browser console if not sure.</li>
                 <li>When testing "if" in console, test both cases: <b>if ("true")</b> passes, so does  <b>if("false")</b>!</li>
                </ul>
