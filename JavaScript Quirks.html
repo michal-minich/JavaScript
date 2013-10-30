@@ -143,9 +143,8 @@
 
                 startTable("Date");
                 add('', 'new Date(2013, 11, 31, 1).toString()', 'new Date("2013-12-31")', false, "maybe");
-                add('', 'new Date(2013, 13, 1).toString()', 'new Date(2014, 1, 1).toString()', "maybe", "maybe");
+                add('', 'new Date(2013, 13, 1).toString()', 'new Date(2014, 1, 1).toString()', "notice", "notice");
                 add('', 'new Date(1999, 11, 31)', 'new Date(1999, 11, 31)', "maybe", "maybe");
-                add('', 'new Date(1999, 12, 31)', 'new Date()', "maybe", "maybe");
                 add('/* 0-11 */', 'new Date(2013, 11, 31, 1).getMonth()', '11', "notice", "notice");
                 add('/* 0-6 */', 'new Date(2013, 11, 31, 1).getDay()', '2', "notice", "notice");
                 add('', 'new Date(2013, 11, 31, 23, 59, 59,  999)', '"Tue Dec 31 2013 23:59:59 GMT+0100 (Central Europe Standard Time)"', true, "maybe");
@@ -241,6 +240,7 @@
                 endTable("parseFloat can be used to string CSS values of units like px, em, pt or %");
 
                 document.getElementById('num-conversions').innerHTML += tbls;
+                tbls = '';
 
                 // ---------- Type Conversions - Boolean
 
@@ -257,8 +257,8 @@
                         "Switch is following: switch (exp) { case true: return true; case false: return false; }",
                         "for == and === equality expressions - only if both directions are the same it can be other color than red. "+
                                 "i.e. when x == true is the same result as x != false",
-                        "+ means that the equality expression (== or ===) when reversed get also reversed result." +
-                                "i.e when x == true should is the same result as x != false",
+                        "! means that the equality expression (== or ===) when negated did NOT get also negated result." +
+                                "i.e when x == true does NOT give the same result as x != false",
                         "Nnumbers: <b>0</b> and <b>NaN</b> are false, all others are true",
                         "Strings: empty string <b>\"\"</b> is false, all others are true",
                         "!! operator converts: <b>0</b>, <b>NaN</b>, <b>\"\"</b> , <b>null</b> and <b>undefined</b> to false, all others to true");
@@ -422,7 +422,7 @@
                     expText = exp === false ? "f" : exp;
 
                 if (typeof exp2 !== "undefined")   {
-                    expText += exp == exp2 ? ' +' : '';
+                    expText += exp == exp2 ? '' : ' !';
                 }
 
                 return '<td class="' + getBoolColorName(colors[ix], exp, exp2) + '">' + expText + '</td>';
